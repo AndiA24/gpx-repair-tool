@@ -377,7 +377,7 @@
                     <div id="fileList" class="file-list"></div>
 
                     <button class="button download-all" id="downloadAll" style="display:none;">
-                        Alle reparierten Dateien herunterladen
+                        Alle reparierten Dateien als ZIP herunterladen
                     </button>
                 </div>
             </div>
@@ -538,21 +538,36 @@
 
                     <div class="file-list">${fileListHTML}</div>
 
-                    ${repaired > 0 ? '<button class="button download-all" onclick="downloadAll()">Alle reparierten Dateien herunterladen</button>' : ''}
+                    ${repaired > 0 ? '<button class="button download-all" onclick="downloadAll()">Alle reparierten Dateien als ZIP herunterladen</button>' : ''}
                 </div>
             `;
 
             fileInput.value = '';
         }
 
-        function downloadAll() {
-            repairedBlobs.forEach(item => {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(item.blob);
-                a.download = 'gpx-tool-repaired/' + item.name;
-                a.click();
-                URL.revokeObjectURL(a.href);
+        async function downloadAll() {
+            // JSZip laden
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            document.head.appendChild(script);
+
+            await new Promise(resolve => {
+                script.onload = resolve;
             });
+
+            const zip = new JSZip();
+            const folder = zip.folder('gpx-tool-repaired');
+
+            repairedBlobs.forEach(item => {
+                folder.file(item.name, item.blob);
+            });
+
+            const content = await zip.generateAsync({type: 'blob'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = 'gpx-tool-repaired.zip';
+            a.click();
+            URL.revokeObjectURL(a.href);
         }
 
         function showAbout() {
