@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GPX-Repair-Tool - Entfernt führende Tabulatoren aus GPX-Dateien">
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GPX Repair">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>GPX-Repair-Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: #666;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #results {
+            margin-top: 25px;
+            display: none;
+        }
+
+        .result-card {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .file-item {
+            padding: 10px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 10px;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status.repaired {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.ok {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .download-all {
+            background: #28a745;
+            margin-top: 15px;
+        }
+
+        .download-all:hover {
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 13px;
+            border-top: 1px solid #eee;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .about-btn {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+
+        .about-btn:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            position: relative;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .install-prompt {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .install-prompt button {
+            background: #ffc107;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📍 GPX-Repair-Tool</h1>
+            <p>Entfernt führende Tabulatoren aus GPX-Dateien</p>
+            <button class="about-btn" onclick="showAbout()">ℹ️ Über</button>
+        </div>
+
+        <div class="content">
+            <div id="installPrompt" class="install-prompt">
+                <strong>📱 App installieren</strong>
+                <p>Füge diese App zu deinem Homescreen hinzu für schnellen Zugriff!</p>
+                <button onclick="installApp()">Jetzt installieren</button>
+            </div>
+
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">GPX-Dateien auswählen</div>
+                <div class="upload-hint">oder hierher ziehen</div>
+            </div>
+
+            <input type="file" id="fileInput" multiple accept=".gpx">
+
+            <div id="results">
+                <div class="result-card">
+                    <h3 style="margin-bottom: 15px; color: #667eea;">📊 Ergebnis</h3>
+                    
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalFiles">0</div>
+                            <div class="stat-label">Geprüft</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="repairedFiles">0</div>
+                            <div class="stat-label">Repairiert</div>
+                        </div>
+                    </div>
+
+                    <div id="fileList" class="file-list"></div>
+
+                    <button class="button download-all" id="downloadAll" style="display:none;">
+                        ⬇️ Alle reparierten Dateien herunterladen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            © 2025 Andreas Adler<br>
+            GPX-Repair-Tool v1.1.0<br>
+            <small>andreas.t@adler-ge.de | +49 160 2223308</small>
+        </div>
+    </div>
+
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAbout()">&times;</span>
+            <h2 style="color: #667eea; margin-bottom: 20px;">Über GPX-Repair-Tool</h2>
+            <p><strong>Version:</strong> 1.1.0</p>
+            <p><strong>Entwickler:</strong> Andreas Adler</p>
+            <p style="margin: 20px 0;">
+                Dieses Tool überprüft die Dateistruktur von GPX-Dateien und repairiert diese.
+                Entwickelt für die Behebung von Export-Problemen in Dronelogbook.
+            </p>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+            <p><strong>📧 E-Mail:</strong> andreas.t@adler-ge.de</p>
+            <p><strong>📞 Telefon:</strong> +49 160 2223308</p>
+            <p style="margin-top: 20px; color: #666; font-size: 13px;">
+                © 2025 Andreas Adler. Alle Rechte vorbehalten.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        let repairedBlobs = [];
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'block';
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    deferredPrompt = null;
+                    document.getElementById('installPrompt').style.display = 'none';
+                });
+            }
+        }
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+            });
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            const gpxFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.gpx'));
+            
+            if (gpxFiles.length === 0) {
+                alert('Bitte wähle mindestens eine GPX-Datei aus!');
+                return;
+            }
+
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').innerHTML = '<div class="loading"><div class="spinner"></div><p>Verarbeite Dateien...</p></div>';
+
+            let total = gpxFiles.length;
+            let repaired = 0;
+            let fileListHTML = '';
+            repairedBlobs = [];
+
+            for (const file of gpxFiles) {
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(buffer);
+                    let status = 'ok';
+                    let statusText = 'OK';
+                    
+                    if (bytes.length === 0) {
+                        status = 'error';
+                        statusText = 'Leer';
+                    } else if (bytes[0] === 9) {
+                        const fixed = bytes.slice(1);
+                        const blob = new Blob([fixed], {type: 'application/gpx+xml'});
+                        repairedBlobs.push({
+                            blob: blob,
+                            name: file.name
+                        });
+                        repaired++;
+                        status = 'repaired';
+                        statusText = 'Repairiert';
+                    }
+
+                    fileListHTML += `
+                        <div class="file-item">
+                            <span class="file-name">${file.name}</span>
+                            <span class="status ${status}">${statusText}</span>
+                        </div>
+                    `;
+                } catch (err) {
+                    fileListHTML += `
+                        <div class="file-item">
+                            <span class="file-name">${file.name}</span>
+                            <span class="status error">Fehler</span>
+                        </div>
+                    `;
+                }
+            }
+
+            document.getElementById('results').innerHTML = `
+                <div class="result-card">
+                    <h3 style="margin-bottom: 15px; color: #667eea;">📊 Ergebnis</h3>
+                    
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-number">${total}</div>
+                            <div class="stat-label">Geprüft</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${repaired}</div>
+                            <div class="stat-label">Repairiert</div>
+                        </div>
+                    </div>
+
+                    <div class="file-list">${fileListHTML}</div>
+
+                    ${repaired > 0 ? '<button class="button download-all" onclick="downloadAll()">⬇️ Alle reparierten Dateien herunterladen</button>' : ''}
+                </div>
+            `;
+
+            fileInput.value = '';
+        }
+
+        function downloadAll() {
+            repairedBlobs.forEach(item => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(item.blob);
+                a.download = item.name.replace('.gpx', '_repaired.gpx');
+                a.click();
+                URL.revokeObjectURL(a.href);
+            });
+        }
+
+        function showAbout() {
+            document.getElementById('aboutModal').style.display = 'block';
+        }
+
+        function closeAbout() {
+            document.getElementById('aboutModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('aboutModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
